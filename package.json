@@ -1,0 +1,10 @@
+{
+  "name": "autodocker",
+  "version": "1.0.0",
+  "main": "main.js",
+  "dependencies": {
+    "dockerode": "^5.0.0",
+    "node-cron": "^4.2.1",
+    "winston": "^3.19.0"
+  }
+}

@@ -1,0 +1,5 @@
+{
+    "image": "localhost:5000/meu-nginx:latest",
+    "container": "meu-app",
+    "interval": 60
+}

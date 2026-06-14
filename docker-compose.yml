@@ -1,0 +1,14 @@
+services:
+
+  autodocker:
+
+    build: .
+
+    container_name: autodocker
+
+    restart: unless-stopped
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./config:/app/config
+      - ./logs:/app/logs
