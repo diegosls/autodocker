@@ -1,4 +1,10 @@
-# 🐳 AutoDocker
+# Alunos
+Diego Costa Sales e Igor de Oliveira Teixeira
+
+# Discplina 
+Virtualização - Prof: Pedro Filho
+
+# AutoDocker
 
 AutoDocker é uma ferramenta de automação para monitoramento e atualização automática de containers Docker a partir de imagens hospedadas em um registry (local ou remoto). Foi desenvolvida como projeto acadêmico para a disciplina de Virtualização e tem funcionamento inspirado em ferramentas como o Watchtower.
 
