@@ -1,249 +1,177 @@
-# 🐳 AutoDocker - Sistema de Monitoramento e Atualização Automática de Containers
+# 🐳 AutoDocker
 
-O **AutoDocker** é um sistema desenvolvido para a disciplina de **Virtualização**, que automatiza o monitoramento de imagens Docker em um registry e realiza atualização automática de containers quando uma nova versão é detectada.
+AutoDocker é uma ferramenta de automação para monitoramento e atualização automática de containers Docker a partir de imagens hospedadas em um registry (local ou remoto). Foi desenvolvida como projeto acadêmico para a disciplina de Virtualização e tem funcionamento inspirado em ferramentas como o Watchtower.
 
-O projeto simula um sistema semelhante ao **Watchtower**, aplicando conceitos de automação, virtualização e DevOps.
-
----
-
-## 👨‍🎓 Integrantes
-
-- Igor de Oliveira Teixeira  
-- Diego Costa Sales  
+Resumo rápido:
+- Monitora o digest/sha das imagens configuradas
+- Efetua pull automático quando detecta nova versão
+- Recria o container com a imagem atualizada
+- Registra logs e opera via scheduler com intervalo configurável
 
 ---
 
-## 📚 Disciplina
+## Índice
 
-Virtualização
-
----
-
-## 🎯 Objetivo
-
-O sistema foi desenvolvido para:
-
-- Monitorar imagens Docker em um registry local/remoto
-- Detectar alterações em imagens (novas versões)
-- Realizar pull automático da nova imagem
-- Recriar containers automaticamente
-- Executar monitoramento contínuo com intervalo configurável
+1. Descrição
+2. Pré-requisitos
+3. Instalação
+4. Configuração (CLI)
+5. Uso (executar o monitor)
+6. Exemplo de teste
+7. Estrutura do projeto
+8. Logs e debug
+9. Problemas conhecidos e dicas
+10. Melhorias futuras
+11. Contribuição
 
 ---
 
-## ⚙️ Funcionalidades
+## 1 — Descrição
 
-✔ Configuração via terminal (CLI)  
-✔ Persistência de configuração local  
-✔ Monitoramento contínuo de imagens Docker  
-✔ Detecção de atualização de imagens  
-✔ Pull automático de imagens atualizadas  
-✔ Recriação automática de containers  
-✔ Sistema de logs  
-✔ Execução baseada em scheduler  
+AutoDocker monitora uma imagem Docker (por nome:tag) em um registry e compara o digest/sha atual com o digest salvo localmente. Quando detecta mudança, realiza pull da imagem nova, remove o container antigo e cria um novo container com a mesma configuração (nome, portas e variáveis, conforme implementado no projeto).
 
----
+O sistema foi pensado para ambientes simples de laboratório e demonstra os conceitos de automação de containers e integração com o Docker Engine.
 
-## 🧱 Tecnologias
+## 2 — Pré-requisitos
 
-- Node.js 18+
-- Docker Engine
-- Docker Registry (porta 5000)
-- Dockerode (API Docker)
-- Winston (logs)
-- JavaScript ES6+
+- Docker Engine instalado e em execução
+- Node.js 18+ e npm
+- (Opcional) Registry Docker local na porta 5000 para testes: registry:2
 
----
+Verifique:
 
-## 📦 Instalação das Dependências
+```bash
+docker --version
+node -v
+npm -v
+```
+
+Se quiser rodar um registry local para testar:
+
+```bash
+docker run -d -p 5000:5000 --name registry registry:2
+```
+
+## 3 — Instalação
+
+1. Instale dependências do projeto:
 
 ```bash
 npm install
+```
 
-Dependências principais:
+2. Dependências principais usadas por este projeto (caso precise instalar manualmente):
 
+```bash
 npm install dockerode winston
-🐳 Pré-requisitos
-Docker
-docker --version
-Node.js
-node -v
-Registry local (opcional)
-docker run -d -p 5000:5000 --name registry registry:2
-🚀 EXECUÇÃO DO PROJETO
-📌 1. Clonar o repositório
-git clone https://github.com/SEU_USUARIO/autodocker.git
-cd autodocker
-📌 2. Instalar dependências
-npm install
-📌 3. Criar imagem Docker
-docker build -t localhost:5000/meu-nginx:latest -f docker/Dockerfile .
-📌 4. Enviar imagem para o registry
-docker push localhost:5000/meu-nginx:latest
-📌 5. Configurar o sistema
+```
 
-Executa o modo configuração interativo:
+## 4 — Configuração (CLI)
 
+O projeto fornece um modo de configuração interativo via `setup.js`. Execute e informe os dados solicitados:
+
+```bash
 node setup.js
-Entrada esperada:
-Imagem Docker: localhost:5000/meu-nginx:latest
-Nome do container: meu-app
-Intervalo (segundos): 60
-📌 6. Iniciar o monitoramento
+```
+
+Exemplo de entradas esperadas durante a configuração:
+
+- Imagem Docker: localhost:5000/meu-nginx:latest
+- Nome do container que será gerenciado: meu-app
+- Intervalo de verificação (em segundos): 60
+
+As configurações são salvas localmente (arquivo em `config/`) para uso posterior pelo monitor.
+
+## 5 — Uso (executar o monitor)
+
+Inicie o monitor com:
+
+```bash
 node main.js
-🔄 EXECUÇÃO EM TEMPO REAL (COMPORTAMENTO DO SISTEMA)
+```
 
-Após iniciar o monitor, o sistema entra em execução contínua:
+Com o monitor em execução você verá logs indicando o início do scheduler, checks periódicos e ações tomadas quando uma nova imagem for encontrada.
 
-Monitor iniciado
-Scheduler iniciado
-Verificando atualizações...
-Antes: sha256:abc123
-Depois: sha256:def456
-Nova versão detectada
-Recriando container...
-Atualização concluída
-🔁 CICLO DE FUNCIONAMENTO
-[Docker Registry]
-       ↓
-AutoDocker verifica imagem
-       ↓
-Compara versão atual vs anterior
-       ↓
-┌──────────────────────┐
-│ Mudou a imagem?      │
-└─────────┬────────────┘
-          │ Sim
-          ↓
-   Pull da nova imagem
-          ↓
-   Remove container antigo
-          ↓
-   Cria novo container
-          ↓
-   Continua monitoramento
+Output esperado (exemplo):
 
-Se não mudou:
-→ aguarda intervalo e repete
-📁 ESTRUTURA DO PROJETO
+- Monitor iniciado
+- Scheduler iniciado
+- Verificando atualizações...
+- Antes: sha256:abc123
+- Depois: sha256:def456
+- Nova versão detectada
+- Recriando container...
+- Atualização concluída
+
+## 6 — Exemplo de teste (fluxo completo)
+
+1. Construa a imagem de teste e publique no registry (exemplo usando o Dockerfile em `docker/`):
+
+```bash
+docker build -t localhost:5000/meu-nginx:latest -f docker/Dockerfile .
+docker push localhost:5000/meu-nginx:latest
+```
+
+2. Configure o sistema (veja seção 4) e inicie o monitor (`node main.js`).
+
+3. Altere o conteúdo (por exemplo HTML), reconstrua e dê push novamente:
+
+```bash
+echo "<h1>VERSÃO 2</h1>" > docker/html/index.html
+docker build -t localhost:5000/meu-nginx:latest -f docker/Dockerfile .
+docker push localhost:5000/meu-nginx:latest
+```
+
+4. Observe os logs do AutoDocker: o monitor deve detectar a nova versão, realizar pull, remover o container antigo e criar um novo.
+
+## 7 — Estrutura do projeto
+
+Raiz:
+
+```
 autodocker/
-├── config/
-├── docker/
-│   └── Dockerfile
-├── logs/
-├── scheduler/
-├── services/
-├── updater/
-├── utils/
-├── setup.js
-├── main.js
+├── config/           # Persistência de configuração
+├── docker/           # Dockerfile e assets de exemplo
+├── logs/             # Logs gerados pela aplicação
+├── scheduler/        # Lógica do agendador
+├── services/         # Serviços auxiliares (ex: configService)
+├── updater/          # Código responsável por pull/atualização/redeploy
+├── utils/            # Utilitários (logger etc.)
+├── setup.js          # CLI de configuração
+├── main.js           # Entrada principal do monitor
 ├── package.json
 └── docker-compose.yml
-📊 EXEMPLO DE USO COMPLETO
-# 1. Build da imagem
-docker build -t localhost:5000/meu-nginx:latest -f docker/Dockerfile .
+```
 
-# 2. Push para registry
-docker push localhost:5000/meu-nginx:latest
+Arquivos importantes:
 
-# 3. Configurar sistema
-node setup.js
+- `setup.js` — script interativo para criar/atualizar a configuração
+- `main.js` — inicializa o scheduler e inicia o ciclo de verificação
+- `updater/` — contém os módulos que fazem pull, removem e recriam containers
+- `services/configService.js` — manipula leitura/gravação de configurações
+- `utils/logger.js` — configuração do Winston para logs
 
-# 4. Iniciar monitor
-node main.js
-🔥 TESTE DE ATUALIZAÇÃO
+## 8 — Logs e debug
 
-Para testar o sistema:
+Os logs são gravados no diretório `logs/` e também emitidos no console (conforme a configuração padrão). Para aumentar a verbosidade, edite a configuração do logger em `utils/logger.js`.
 
-# Alterar algo no projeto (ex: HTML)
-echo "<h1>VERSÃO 2</h1>" > docker/html/index.html
+Dicas de debug:
 
-# Rebuild
-docker build -t localhost:5000/meu-nginx:latest -f docker/Dockerfile .
+- Verifique se o Docker Engine está acessível pelo usuário que executa o Node.js
+- Inspecione `logs/` para mensagens de erro ou falhas de pull
+- Teste manualmente operações com `docker pull` / `docker run` para isolar problemas do código
 
-# Push nova versão
-docker push localhost:5000/meu-nginx:latest
+## 9 — Problemas conhecidos e dicas
 
-📌 Resultado esperado no monitor:
+- O projeto assume permissões para manipular o Docker (usuário no grupo `docker` ou execução como root)
+- Se usar registry local, confirme que a URL/porta (ex: `localhost:5000`) estejam corretas e que a imagem foi realmente enviada
+- Recomenda-se o uso de tags imutáveis (ou digests) em ambientes de produção para evitar ambiguidades
 
-Nova versão detectada
-Recriando container
-Atualização concluída
-⚠️ OBSERVAÇÕES
-Docker deve estar ativo durante execução
-Registry deve estar rodando na porta 5000
-Recomenda-se uso de tags ou digest para maior precisão
-O sistema executa continuamente até ser interrompido
-🧠 MELHORIAS FUTURAS
-Interface Web (dashboard)
-Notificações (Telegram/Discord)
-Rollback automático
-Histórico de versões
-CI/CD integrado com GitHub Actions
-Suporte multi-container
-📌 STATUS DO PROJETO
+## 10 — Melhorias futuras
 
-✔ Monitoramento funcionando
-✔ Atualização automática
-✔ Integração Docker completa
-✔ Sistema CLI funcional
+- Dashboard web para visualizar status e histórico de atualizações
+- Notificações (Telegram/Discord)
+- Rollback automático em caso de falha na nova versão
+- Suporte a multi-container e configuração por serviço
+- Integração com CI/CD (GitHub Actions)
 
-🏁 CONCLUSÃO
-
-O AutoDocker implementa conceitos de:
-
-Virtualização com containers
-Automação de infraestrutura
-Monitoramento contínuo
-Princípios de DevOps# 🐳 AutoDocker - Monitoramento e Atualização Automática de Containers
-
-Projeto desenvolvido para a disciplina de **Virtualização**, com o objetivo de automatizar o monitoramento de imagens Docker em um registry e realizar atualização automática de containers quando uma nova versão da imagem é detectada.
-
----
-
-## 📌 Integrantes
-
-- Igor de Oliveira Teixeira  
-- Diego Costa Sales  
-
----
-
-## 🎯 Objetivo do Projeto
-
-O AutoDocker é um sistema de automação que:
-
-- Monitora uma imagem Docker em um registry local ou remoto
-- Detecta alterações na imagem (nova versão)
-- Realiza o download (pull) automaticamente
-- Recria o container atualizado sem intervenção manual
-
----
-
-## ⚙️ Funcionalidades
-
-- 📦 Configuração interativa via terminal
-- 🐳 Integração com Docker Engine
-- 🔄 Monitoramento contínuo de imagens Docker
-- ⚡ Atualização automática de containers
-- 📝 Logs de execução detalhados
-- ⏱ Execução em intervalos configuráveis
-
----
-
-## 🧱 Tecnologias Utilizadas
-
-- Node.js 18+
-- Docker Engine
-- Docker Registry (local ou remoto)
-- JavaScript (ES6+)
-- Winston (logs)
-- Dockerode (integração com Docker API)
-
----
-
-## 📦 Dependências
-
-Antes de executar o projeto, instale as dependências:
-
-```bash
-npm install
